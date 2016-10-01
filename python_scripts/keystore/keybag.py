@@ -130,7 +130,7 @@ class Keybag(object):
     def createWithBackupManifest(manifest, password, deviceKey=None):
         kb = Keybag(manifest["BackupKeyBag"].data)
         kb.deviceKey = deviceKey
-        if not kb.unlockBackupKeybagWithPasscode(password):
+        if not kb.unlockBackupKeybagWithPassword(password):
             print "Cannot decrypt backup keybag. Wrong password ?"
             return
         return kb
@@ -176,6 +176,14 @@ class Keybag(object):
             return False
         return self.unlockWithPasscodeKey(self.getPasscodekeyFromPasscode(passcode))
 
+    def unlockBackupKeybagWithPassword(self, password):
+        if self.type != BACKUP_KEYBAG and self.type != OTA_KEYBAG:
+            print "unlockBackupKeybagWithPassword: not a backup keybag"
+            return False
+
+        passcodekey = PBKDF2(password, self.attrs["SALT"], iterations=self.attrs["ITER"]).read(32)
+        return self.unlockWithPasscodeKey(passcodekey)
+
     def unlockAlwaysAccessible(self):
         for classkey in self.classKeys.values():
             k = classkey["WPKY"]
@@ -200,7 +208,7 @@ class Keybag(object):
                 k = AESUnwrap(passcodekey, classkey["WPKY"])
                 if not k:
                     return False
-            if classkey["WRAP"] & WRAP_DEVICE:
+            elif classkey["WRAP"] & WRAP_DEVICE:
                 if not self.deviceKey:
                     continue
                 k = AESdecryptCBC(k, self.deviceKey)

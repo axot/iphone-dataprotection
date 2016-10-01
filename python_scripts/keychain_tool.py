@@ -29,19 +29,12 @@ def main():
     
     if p.has_key("BackupKeyBag"):
         deviceKey = None
-        if p.has_key("key835"):
-            deviceKey = p["key835"].decode("hex")
-        else:
-            if not p["IsEncrypted"]:
-                print "This backup is not encrypted, without key 835 nothing in the keychain can be decrypted"
-            print "If you have key835 for device %s enter it (in hex)" % p["Lockdown"]["UniqueDeviceID"]
-            d = raw_input()
-            if len(d) == 32:
-                p["key835"] = d
-                deviceKey = d.decode("hex")
-                plistlib.writePlist(p, args[1])
-        
-        kb = Keybag.createWithBackupManifest(p, p.get("password",""), deviceKey)
+        if not p["IsEncrypted"]:
+            print "This backup is not encrypted, without key 835 nothing in the keychain can be decrypted"
+        print "If you have key835 for device %s enter it (in hex)" % p["Lockdown"]["UniqueDeviceID"]
+        deviceKey = raw_input()
+
+        kb = Keybag.createWithBackupManifest(p, deviceKey, deviceKey)
         if not kb:
             return
         k = Keychain4(args[0], kb)
